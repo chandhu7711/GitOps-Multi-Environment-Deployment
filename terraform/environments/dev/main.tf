@@ -6,7 +6,7 @@ module "dev_infra" {
   instance_count = 1
   key_name       = "gitops-devops-key"
 
-  admin_cidr = "51.21.224.244/32"
+  admin_cidr = "223.185.47.92/32"
 }
 
 output "instance_ips" {

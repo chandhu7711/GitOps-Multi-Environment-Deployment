@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: dev
+
+resources:
+  - ../../base
+
+replicas:
+  - name: sample-app
+    count: 1
+
+images:
+  - name: sample-app
+    newName: gitops-sample-app
+    newTag: local

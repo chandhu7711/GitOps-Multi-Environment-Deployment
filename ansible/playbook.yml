@@ -1,0 +1,82 @@
+---
+- name: Configure and deploy app server
+  hosts: app_servers
+  become: true
+
+  vars:
+    environment_name: "{{ env | default('dev') }}"
+    app_dir: /opt/gitops-app
+    container_name: gitops-sample-app
+    image_name: gitops-sample-app:{{ environment_name }}
+
+  tasks:
+
+    - name: Install Docker
+      ansible.builtin.yum:
+        name: docker
+        state: present
+
+    - name: Start Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create environment configuration
+      ansible.builtin.copy:
+        content: |
+          ENVIRONMENT={{ environment_name }}
+          LOG_LEVEL={{ 'debug' if environment_name == 'dev' else 'info' }}
+        dest: /etc/app.env
+        mode: "0644"
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Copy application to EC2
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../app/"
+        dest: "{{ app_dir }}/"
+        exclude:
+          - node_modules
+          - "*.log"
+          - ".git"
+
+    - name: Build Docker image
+      ansible.builtin.command:
+        cmd: docker build -t {{ image_name }} {{ app_dir }}
+
+    - name: Remove existing container
+      ansible.builtin.command:
+        cmd: docker rm -f {{ container_name }}
+      failed_when: false
+      changed_when: false
+
+    - name: Start application container
+      ansible.builtin.command:
+        cmd: >
+          docker run -d
+          --name {{ container_name }}
+          --restart unless-stopped
+          -p 3000:3000
+          --env-file /etc/app.env
+          {{ image_name }}
+
+    - name: Wait for application
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 3000
+        delay: 3
+        timeout: 30
+
+    - name: Check application health
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3000/health
+        status_code: 200
+
+    - name: Deployment successful
+      ansible.builtin.debug:
+        msg: "Application deployed successfully in {{ environment_name }} environment"
