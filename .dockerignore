@@ -1,1 +1,0 @@
-printf "node_modules\nnpm-debug.log\n.git\n.gitignore\n" > app/.dockerignore 
