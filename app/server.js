@@ -55,8 +55,10 @@ app.get('/', (req, res) => {
   res.json({ message: `Hello from the ${ENVIRONMENT} environment!` });
 });
 
-app.listen(PORT, () => {
-  console.log(`App running on port ${PORT} in ${ENVIRONMENT} environment`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`App running on port ${PORT} in ${ENVIRONMENT} environment`);
+  });
+}
 
 module.exports = app;
